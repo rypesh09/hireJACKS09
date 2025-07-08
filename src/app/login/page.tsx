@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -43,15 +42,13 @@ export default function LoginPage() {
   const { signIn, user, role, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<'student' | 'admin'>('student');
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
 
-  // This effect handles redirecting users based on their auth state.
-  // It runs when the page loads (for already logged-in users) and
-  // after a successful login attempt, once the auth state is updated.
   useEffect(() => {
     if (!authLoading && user) {
       if (role === 'admin') {
@@ -62,22 +59,18 @@ export default function LoginPage() {
     }
   }, [user, role, authLoading, router]);
 
-
   async function onSubmit(data: LoginFormValues) {
     setIsSubmitting(true);
     try {
-      await signIn(data.email, data.password);
-      // The useEffect hook above will handle redirection once the auth state is updated.
-      // We don't set isSubmitting to false here, to keep the loading spinner active until redirection.
+      await signIn(data.email, data.password, selectedRole); // 👈 pass selectedRole
     } catch (error: any) {
       console.error('Login failed:', error);
       toast({
         title: 'Login Failed',
-        description:
-          error.message || 'An unexpected error occurred. Please try again.',
+        description: error.message || 'An unexpected error occurred. Please try again.',
         variant: 'destructive',
       });
-      setIsSubmitting(false); // Only set to false on error
+      setIsSubmitting(false);
     }
   }
 
@@ -92,11 +85,7 @@ export default function LoginPage() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="you@example.com"
-                    {...field}
-                  />
+                  <Input type="email" placeholder="you@example.com" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -128,10 +117,7 @@ export default function LoginPage() {
           </Button>
           <p className="text-sm text-muted-foreground">
             Don't have an account?{' '}
-            <Link
-              href="/signup"
-              className="font-semibold text-primary hover:underline"
-            >
+            <Link href="/signup" className="font-semibold text-primary hover:underline">
               Sign Up
             </Link>
           </p>
@@ -140,8 +126,6 @@ export default function LoginPage() {
     </Form>
   );
 
-  // This loading state is for when we are checking if a user is ALREADY logged in,
-  // or if a login is in progress.
   if (authLoading || (!authLoading && user)) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
@@ -155,7 +139,7 @@ export default function LoginPage() {
       <div className="absolute top-6 left-6">
         <Logo />
       </div>
-      <Tabs defaultValue="student" className="w-full max-w-sm">
+      <Tabs defaultValue="student" onValueChange={(val) => setSelectedRole(val as 'student' | 'admin')} className="w-full max-w-sm">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="student">Student</TabsTrigger>
           <TabsTrigger value="admin">Admin</TabsTrigger>
@@ -163,12 +147,8 @@ export default function LoginPage() {
         <TabsContent value="student">
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="font-headline text-xl sm:text-2xl">
-                Student Login
-              </CardTitle>
-              <CardDescription>
-                Sign in to continue to your account.
-              </CardDescription>
+              <CardTitle className="font-headline text-xl sm:text-2xl">Student Login</CardTitle>
+              <CardDescription>Sign in to continue to your account.</CardDescription>
             </CardHeader>
             {LoginForm}
           </Card>
@@ -176,9 +156,7 @@ export default function LoginPage() {
         <TabsContent value="admin">
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="font-headline text-xl sm:text-2xl">
-                Admin Login
-              </CardTitle>
+              <CardTitle className="font-headline text-xl sm:text-2xl">Admin Login</CardTitle>
               <CardDescription className="text-xs sm:text-sm">
                 When using mock auth, use{' '}
                 <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono font-semibold">
